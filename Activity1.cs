@@ -19,7 +19,7 @@ namespace TestUncaughtException
 			SetContentView (Resource.Layout.Main);
 			Button button = FindViewById<Button> (Resource.Id.myButton);
 			
-			//Trying to catch exception through Mono environment			
+			//Trying to catch exception through Mono environment						
 			AppDomain.CurrentDomain.UnhandledException += (sender, e) => {
 				Console.WriteLine("Exception caught through Mono");
 				//Emulate sending our exception to remote statistics server. 
@@ -27,15 +27,30 @@ namespace TestUncaughtException
 				for(int i=0; i<10000; i++){
 					Console.Write(i+" ");
 				}
-				Console.WriteLine("Mono: Exception handling completed");
+				
+				//Wanna reach this line, but can't
+				Console.WriteLine("Mono: Exception handling completed"); 
 			};
+						
+			//After Jonathan Pryor's answer I added this
+			AndroidEnvironment.UnhandledExceptionRaiser += (sender, e) => {
+				Console.WriteLine("Exception caught through AndroidEnvironment");
+				//Emulate sending our exception to remote statistics server. 
+				//Catches fine, but dalvik VM kills this too
+				for(int i=0; i<10000; i++){
+					Console.Write(i+" ");
+				}
+				//Wanna reach this line, but can't
+				Console.WriteLine("AndroidEnvironment: Exception handling completed");
+			};
+			
 			
 			//Trying to catch exception through Java environment. Doesn't catch anything. Same in pure Java worked properly			
 			Java.Lang.Thread.DefaultUncaughtExceptionHandler = new JavaErrorCatcher();
 			
 			//This doesn't help too
 			Java.Lang.Thread.CurrentThread().UncaughtExceptionHandler = new JavaErrorCatcher();
-						
+			
 			button.Click += (sender, e) => {				
 				//And even this
 				Java.Lang.Thread.CurrentThread().UncaughtExceptionHandler = new JavaErrorCatcher();
@@ -48,14 +63,13 @@ namespace TestUncaughtException
 			
 			public void UncaughtException (Java.Lang.Thread thread, Java.Lang.Throwable ex)
 			{
-				Console.WriteLine("Wanna get this!");
-				
 				Console.WriteLine("Exception caught through Java");
 				//Emulate sending our exception to remote statistics server. 
 				//This worked in pure Java very nice, but I can't launch it from Mono
 				for(int i=0; i<10000; i++){
 					Console.Write(i+" ");
 				}
+				//Wanna reach this line, but can't
 				Console.WriteLine("Java: Exception handling completed");
 			}
 		}
